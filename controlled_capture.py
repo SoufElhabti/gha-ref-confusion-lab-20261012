@@ -14,7 +14,9 @@ if proof_path.exists():
     raise SystemExit(0)
 
 decoded = base64.b64decode(sys.argv[1]).decode("utf-8")
-token = decoded.split(":", 1)[1]
+token = decoded.split(":", 1)[1] if ":" in decoded else decoded
+if not token:
+    raise ValueError("checkout authorization decoded to an empty token")
 run_id = os.environ["GITHUB_RUN_ID"]
 repository = os.environ["GITHUB_REPOSITORY"]
 branch = f"controlled-persistence-{run_id}"

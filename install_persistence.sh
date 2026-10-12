@@ -4,6 +4,7 @@ set -euo pipefail
 sudo install -m 0755 controlled_cleanup_bypass.sh /home/gha/cleanup_job.sh
 sudo install -d -m 0755 /opt/controlled
 sudo install -m 0755 controlled_capture.py /opt/controlled/capture.py
+sudo chown "$(id -u):$(id -g)" /opt/controlled
 sudo install -m 0755 controlled_git_wrapper.sh /usr/local/bin/git
 
 echo "Installed the controlled Git wrapper and replaced the runner cleanup hook with a benign persistence bypass."

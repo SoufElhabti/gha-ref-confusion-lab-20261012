@@ -1,0 +1,56 @@
+name: controlled persistent runner boundary
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  boundary:
+    if: >-
+      github.event_name == 'pull_request' ||
+      contains(github.event.head_commit.message, '[trusted-probe]')
+    runs-on: [self-hosted, controlled-persistent-runner]
+    env:
+      CONTROLLED_MAIN_CANARY: ${{ github.event_name == 'push' && secrets.PERSISTENCE_CANARY || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Record runner identity
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/controlled-evidence"
+          printf '%s\n' \
+            "runner_name=$RUNNER_NAME" \
+            "runner_arch=$RUNNER_ARCH" \
+            "runner_os=$RUNNER_OS" \
+            "event=$GITHUB_EVENT_NAME" \
+            "run_id=$GITHUB_RUN_ID" \
+            "sha=$GITHUB_SHA" \
+            > "$RUNNER_TEMP/controlled-evidence/runner.txt"
+
+      - name: Execute pull-request-controlled installer
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: bash ./install_persistence.sh
+
+      - name: Verify trusted proof artifact
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          test -f /opt/controlled/proof.json
+          cp /opt/controlled/proof.json "$RUNNER_TEMP/controlled-evidence/proof.json"
+
+      - name: Upload non-secret evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: persistent-runner-${{ github.event_name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/controlled-evidence
+          if-no-files-found: warn
+

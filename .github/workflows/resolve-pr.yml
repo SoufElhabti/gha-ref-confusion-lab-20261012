@@ -47,5 +47,3 @@ jobs:
         with:
           name: ref-resolution-proof
           path: proof.json
-*** Add File: /Users/soufianeelhabti/fb_research_audit/main/lab/gha-ref-confusion-lab/proof.py
-raise SystemExit("The default branch proof script must never execute")

@@ -1,0 +1,34 @@
+name: controlled privileged follow-up
+
+on:
+  workflow_run:
+    workflows: ["contributor check"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout triggering head SHA
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          allow-unsafe-pr-checkout: true
+          persist-credentials: false
+
+      - name: Execute checked-out proof script with a canary secret
+        env:
+          CONTROLLED_CANARY: ${{ secrets.CONTROLLED_CANARY }}
+          EXPECTED_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EXPECTED_HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+        run: python3 proof.py
+
+      - name: Upload non-secret proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-run-secret-proof
+          path: proof.json
